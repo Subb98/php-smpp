@@ -2,12 +2,10 @@
 
 namespace PhpSmpp\Service;
 
-
 use PhpSmpp\Client;
 
 abstract class Service
 {
-
     /** @var array */
     protected $hosts;
     protected $login;
@@ -56,7 +54,6 @@ abstract class Service
         $this->client->getTransport()->open();
     }
 
-
     public function unbind()
     {
         $this->client->close();
@@ -68,7 +65,6 @@ abstract class Service
      */
     public function enshureConnection()
     {
-
         // Когда явно нет подключения: либо ни разу не подключались либо отключились unbind
         if (empty($this->client)) {
             $this->bind();
@@ -83,6 +79,10 @@ abstract class Service
         try {
             $this->client->enquireLink();
         } catch (\Throwable $e) {
+            $code = $e->getCode();
+            $message = $e->getMessage();
+            $trace = $e->getTraceAsString();
+            call_user_func($this->debugHandler, "PhpSmppServiceEnquireException; error code: $code, message: $message, trace: $trace");
             $this->unbind();
             $this->bind();
             $this->client->enquireLink();
@@ -96,5 +96,4 @@ abstract class Service
             $this->client->setDebugHandler($callback);
         }
     }
-
 }
