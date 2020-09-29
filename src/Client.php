@@ -139,8 +139,8 @@ class Client
                 $ports[] = $ar[1] ?? static::DEFAULT_PORT;
             }
             $this->transport = new SocketTransport($hosts, $ports, false, $this->debugHandler);
-            $this->transport->setRecvTimeout(60000); // 60 seconds
-            $this->transport->setSendTimeout(60000);
+            $this->transport->setRecvTimeout(10000); // 10 seconds
+            $this->transport->setSendTimeout(60000); // 60 seconds
         }
         return $this->transport;
     }
