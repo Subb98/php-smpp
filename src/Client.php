@@ -332,17 +332,31 @@ class Client
 
     public function listenSm(callable $callback)
     {
+        $pid = getmypid();
         do {
             $pdu = $this->readPDU();
             if ($pdu === false) {
+                call_user_func($this->debugHandler, "Failed to create pdu object (pid: $pid)");
                 return;
             }
             if (PduParser::isSm($pdu)) {
+                call_user_func($this->debugHandler, "Is *_sm pdu (pid: $pid, sequence number: $pdu->sequence)");
                 try {
                     $sm = PduParser::fromPdu($pdu);
-                    $this->sendPDU($sm->buildResp());
+                    $resp = $sm->buildResp();
+                    call_user_func(
+                        $this->debugHandler,
+                        "Pdu ready to send (pid: $pid, sequence number: $pdu->sequence)\n"
+                        . "resp_id: $resp->id, resp_status: $resp->status, resp_sequence: $resp->sequence, resp_body: $resp->body"
+                    );
+                    $this->sendPDU($resp);
+                    call_user_func(
+                        $this->debugHandler,
+                        "Pdu has been sent (pid: $pid, sequence number: $pdu->sequence)\n"
+                        . "resp_id: $resp->id, resp_status: $resp->status, resp_sequence: $resp->sequence, resp_body: $resp->body"
+                    );
                 } catch (\Throwable $e) {
-                    call_user_func($this->debugHandler, 'Failed parse pdu: ' . $e->getMessage() . ' ' . print_r($pdu, true));
+                    call_user_func($this->debugHandler, "Failed parse pdu (pid: $pid, sequence number: $pdu->sequence): " . $e->getMessage() . ' ' . print_r($pdu, true));
                     usleep(10e4);
                     continue;
                 }
