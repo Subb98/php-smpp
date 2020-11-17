@@ -3,6 +3,9 @@
 namespace PhpSmpp;
 
 use PhpSmpp\Pdu\Part\Address;
+use PhpSmpp\Pdu\Part\Tag;
+use PhpSmpp\PduParser;
+use PhpSmpp\Transport\SMPPSocketTransport;
 use PhpSmpp\Transport\SocketTransport;
 use PhpSmpp\Pdu\Pdu;
 use PhpSmpp\Exception\SmppException;
@@ -100,10 +103,8 @@ class Client
     protected $readSmsCallback;
 
     /**
-     * Construct the SMPP class
-     *
-     * @param SocketTransport $transport
-     * @param string $debugHandler
+     * Client constructor.
+     * @param array $hosts ['ip:port','ip2:port2']
      */
     public function __construct($hosts)
     {
@@ -138,7 +139,7 @@ class Client
                 $hosts[] = $ar[0];
                 $ports[] = $ar[1] ?? static::DEFAULT_PORT;
             }
-            $this->transport = new SocketTransport($hosts, $ports, false, $this->debugHandler);
+            $this->transport = new SMPPSocketTransport($hosts, $ports, false, $this->debugHandler);
             $this->transport->setRecvTimeout(10000); // 10 seconds
             $this->transport->setSendTimeout(60000); // 60 seconds
         }
@@ -219,7 +220,7 @@ class Client
             ob_end_clean();
             $pid = getmypid();
             call_user_func($this->debugHandler, "Unbinding... (pid: $pid) trace: $trace");
-//            call_user_func($this->debugHandler, "Unbinding...");
+            // call_user_func($this->debugHandler, "Unbinding...");
         }
 
         try {
@@ -233,7 +234,7 @@ class Client
             }
             // Do nothing
         }
-        
+
         $this->transport->close();
     }
 
@@ -601,7 +602,7 @@ class Client
      * @param string $login ESME system_id
      * @param string $pass ESME password
      * @param string $command_id
-     * @return Pdu
+     * @return Pdu|false
      */
     protected function bind($login, $pass, $command_id)
     {
@@ -704,7 +705,7 @@ class Client
      * Sends the PDU command to the SMSC and waits for response.
      * @param integer $id - command ID
      * @param string $pduBody - PDU body
-     * @return Pdu
+     * @return Pdu|false
      */
     protected function sendCommand($id, $pduBody, $needReply = true)
     {
@@ -740,9 +741,9 @@ class Client
      */
     protected function sendPDU(Pdu $pdu)
     {
-        $length = strlen($pdu->body) + 16;
-        $header = pack("NNNN", $length, $pdu->id, $pdu->status, $pdu->sequence);
         if ($this->debug) {
+            $length = strlen($pdu->body) + 16;
+            $header = pack("NNNN", $length, $pdu->id, $pdu->status, $pdu->sequence);
             call_user_func(
                 $this->debugHandler,
                 "Send PDU: $length bytes;\ncommand_id: 0x" . dechex($pdu->id) . ";\n"
@@ -750,7 +751,7 @@ class Client
                 . ' ' . chunk_split(bin2hex($header . $pdu->body), 2, ' ')
             );
         }
-        $this->transport->write($header . $pdu->body, $length);
+        $this->transport->sendPDU($pdu);
     }
 
     /**
@@ -760,7 +761,7 @@ class Client
      *
      * @param integer $seq_number - PDU sequence number
      * @param integer $command_id - PDU command ID
-     * @return Pdu
+     * @return Pdu|false
      * @throws SmppException
      */
     protected function readPDU_resp($seq_number, $command_id)
@@ -824,13 +825,15 @@ class Client
         }
         $pdu = new Pdu($command_id, $command_status, $sequence_number, $body);
 
-        call_user_func(
-            $this->debugHandler,
-            "Read PDU: $length bytes;\ncommand id: 0x" . dechex($command_id) . ";\n"
-            . "command status: 0x" . dechex($command_status) . '; ' . SMPP::getStatusMessage($command_status) . ";\n"
-            . "sequence number: $sequence_number;\n"
-            . ' ' . chunk_split(bin2hex($bufLength . $bufHeaders . $body), 2, ' ')
-        );
+        if ($this->debug) {
+            call_user_func(
+                $this->debugHandler,
+                "Read PDU: $length bytes;\ncommand id: 0x" . dechex($command_id) . ";\n"
+                . "command status: 0x" . dechex($command_status) . '; ' . SMPP::getStatusMessage($command_status) . ";\n"
+                . "sequence number: $sequence_number;\n"
+                . ' ' . chunk_split(bin2hex($bufLength . $bufHeaders . $body), 2, ' ')
+            );
+        }
 
         return $pdu;
     }
@@ -863,7 +866,7 @@ class Client
      * Does not stop at null byte
      *
      * @param array $ar - input array
-     * @param intger $length
+     * @param int $length
      * @return string
      */
     protected function getOctets(&$ar, $length)
