@@ -139,8 +139,8 @@ class Client
                 $ports[] = $ar[1] ?? static::DEFAULT_PORT;
             }
             $this->transport = new SocketTransport($hosts, $ports, false, $this->debugHandler);
-            $this->transport->setRecvTimeout(60000); // 60 seconds
-            $this->transport->setSendTimeout(60000);
+            $this->transport->setRecvTimeout(10000); // 10 seconds
+            $this->transport->setSendTimeout(60000); // 60 seconds
         }
         return $this->transport;
     }
@@ -213,12 +213,13 @@ class Client
             return;
         }
         if ($this->debug) {
-//            ob_start();
-//            debug_print_backtrace();
-//            $trace = ob_get_contents();
-//            ob_end_clean();
-//            call_user_func($this->debugHandler, "Unbinding... trace: $trace");
-            call_user_func($this->debugHandler, "Unbinding...");
+            ob_start();
+            debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            $trace = ob_get_contents();
+            ob_end_clean();
+            $pid = getmypid();
+            call_user_func($this->debugHandler, "Unbinding... (pid: $pid) trace: $trace");
+//            call_user_func($this->debugHandler, "Unbinding...");
         }
 
         try {
