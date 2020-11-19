@@ -213,24 +213,25 @@ class Client
         if (!$this->transport->isOpen()) {
             return;
         }
+
+        $pid = getmypid();
+
         if ($this->debug) {
             ob_start();
             debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             $trace = ob_get_contents();
             ob_end_clean();
-            $pid = getmypid();
             call_user_func($this->debugHandler, "Unbinding... (pid: $pid) trace: $trace");
-            // call_user_func($this->debugHandler, "Unbinding...");
         }
 
         try {
             $response = $this->sendCommand(SMPP::UNBIND, "");
             if ($this->debug) {
-                call_user_func($this->debugHandler, "Unbind status: " . $response->status);
+                call_user_func($this->debugHandler, "Unbind status (pid: $pid): " . $response->status);
             }
         } catch (\Throwable $e) {
             if ($this->debug) {
-                call_user_func($this->debugHandler, "Unbind status: thrown error: " . $e->getMessage());
+                call_user_func($this->debugHandler, "Unbind status (pid: $pid): thrown error: " . $e->getMessage());
             }
             // Do nothing
         }
@@ -336,7 +337,6 @@ class Client
         do {
             $pdu = $this->readPDU();
             if ($pdu === false) {
-                call_user_func($this->debugHandler, "Failed to create pdu object (pid: $pid)");
                 return;
             }
             if (PduParser::isSm($pdu)) {

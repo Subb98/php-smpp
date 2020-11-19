@@ -84,7 +84,6 @@ abstract class Service
             $trace = $e->getTraceAsString();
             $pid = getmypid();
             call_user_func($this->debugHandler, "PhpSmppServiceEnquireException (pid: $pid); error code: $code, message: $message, trace: $trace");
-            // call_user_func($this->debugHandler, "PhpSmppServiceEnquireException; error code: $code, message: $message, trace: $trace");
             // $this->unbind();
             $this->bind();
             $this->client->enquireLink();
