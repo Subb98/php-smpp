@@ -2,12 +2,10 @@
 
 namespace PhpSmpp\Service;
 
-
 use PhpSmpp\Client;
 
 class Listener extends Service
 {
-
     public function bind()
     {
         $this->openConnection();
@@ -24,8 +22,17 @@ class Listener extends Service
     public function listen(callable $callback)
     {
         while (true) {
-            $this->listenOnce($callback);
-            usleep(10e4);
+            try {
+                $this->listenOnce($callback);
+                usleep(10e4);
+            } catch (\Throwable $e) {
+                if ($this->debug) {
+                    call_user_func(
+                        $this->debugHandler,
+                        __METHOD__ . " exception: {$e->getCode()}, {$e->getMessage()}, {$e->getTraceAsString()}"
+                    );
+                }
+            }
         }
     }
 
@@ -34,5 +41,4 @@ class Listener extends Service
         $this->enshureConnection();
         $this->client->listenSm($callback);
     }
-
 }
