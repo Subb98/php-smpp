@@ -80,13 +80,13 @@ abstract class Service
             $this->bind();
         }
 
-        try {
-            $this->client->enquireLink();
-        } catch (\Throwable $e) {
-            $this->unbind();
-            $this->bind();
-            $this->client->enquireLink();
-        }
+//        try {
+//            $this->client->enquireLink();
+//        } catch (\Throwable $e) {
+//            $this->unbind();
+//            $this->bind();
+//            $this->client->enquireLink();
+//        }
     }
 
     public function setDebugHandler(callable $callback)

@@ -86,9 +86,25 @@ class Sender extends Service
             $encodedMessage = iconv('UTF-8', 'UCS-2BE', $message);
             $dataCoding = SMPP::DATA_CODING_UCS2_USSD;
         }
-        $smsId = $this->client->sendUSSD($from, $to, $encodedMessage, $tags, $dataCoding);
+        $smsId = null;
+        $retriesCount = $this->retriesCount;
+        $delayBetweenAttempts = 1; // задержка в секундах перед следующей попыткой
+        for ($i = 1; $i <= $retriesCount; $i++) {
+            try {
+                $smsId = $this->client->sendUSSD($from, $to, $encodedMessage, $tags, $dataCoding);
+            } catch (\Throwable $e) {
+                // Словили ошибку
+                if ($i >= $retriesCount) {
+                    // Если попытки закончились, пробрасываем исключение выше по стеку
+                    throw $e;
+                }
+                // Иначе пробуем снова..
+                sleep($delayBetweenAttempts);
+                continue;
+            }
+            // Ошибок не было, выходим из цикла
+            break;
+        }
         return $smsId;
     }
-
-
 }
