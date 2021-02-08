@@ -4,6 +4,7 @@ namespace PhpSmpp\Service;
 
 
 use PhpSmpp\Client;
+use PhpSmpp\Transport\Exception\SocketTransportException;
 
 abstract class Service
 {
@@ -64,9 +65,10 @@ abstract class Service
 
     /**
      * Проверим, если нет коннекта, попытаемся подключиться. Иначе кидаем исключение
+     * @param bool $sendEnquireLink
      * @throws SocketTransportException
      */
-    public function enshureConnection()
+    public function enshureConnection(bool $sendEnquireLink = false)
     {
 
         // Когда явно нет подключения: либо ни разу не подключались либо отключились unbind
@@ -80,13 +82,17 @@ abstract class Service
             $this->bind();
         }
 
-//        try {
-//            $this->client->enquireLink();
-//        } catch (\Throwable $e) {
-//            $this->unbind();
-//            $this->bind();
-//            $this->client->enquireLink();
-//        }
+        if (!$sendEnquireLink) {
+            return;
+        }
+
+        try {
+            $this->client->enquireLink();
+        } catch (\Throwable $e) {
+            $this->unbind();
+            $this->bind();
+            $this->client->enquireLink();
+        }
     }
 
     public function setDebugHandler(callable $callback)
