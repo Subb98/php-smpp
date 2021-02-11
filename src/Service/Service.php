@@ -68,7 +68,7 @@ abstract class Service
      * @param bool $sendEnquireLink
      * @throws SocketTransportException
      */
-    public function enshureConnection(bool $sendEnquireLink = false)
+    public function enshureConnection(bool $sendEnquireLink = true)
     {
 
         // Когда явно нет подключения: либо ни разу не подключались либо отключились unbind
